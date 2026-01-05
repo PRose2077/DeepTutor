@@ -13,7 +13,7 @@
 
 
 
-[**Quick Start**](#quick-start) · [**Core Modules**](#core-modules) · [**FAQ**](#faq)
+[**Quick Start**](#quick-start) · [**UV Guide**](#uv-package-manager-guide) · [**Core Modules**](#core-modules) · [**FAQ**](#faq)
 
 [🇨🇳 中文](assets/README/README_CN.md) · [🇯🇵 日本語](assets/README/README_JA.md) · [🇪🇸 Español](assets/README/README_ES.md) · [🇫🇷 Français](assets/README/README_FR.md) · [🇸🇦 العربية](assets/README/README_AR.md)
 
@@ -242,19 +242,52 @@ source venv/bin/activate
 
 ### Step 2: Install Dependencies
 
+#### Option A: Using UV (Recommended for Python Package Management)
+
+UV is a fast Python package installer and resolver. The project includes UV support for efficient dependency management:
+
+```bash
+# Install UV (if not already installed)
+# On Windows:
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# On macOS/Linux:
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Verify UV installation
+uv --version
+
+# Install dependencies using UV
+uv sync
+
+# Alternative: Install UV via pip
+pip install uv
+uv sync
+```
+
+**UV Benefits:**
+- **10-100x faster** than pip for package installation
+- **Automatic virtual environment management** with `uv sync`
+- **Lock file support** for reproducible builds
+- **Built-in dependency resolution** with conflict detection
+
+#### Option B: Automated Installation Scripts
+
 Run the automated installation script to install all required dependencies:
 
 ```bash
-# Recommended: Automated Installation
+# Recommended: Automated Installation (includes UV fallback)
 bash scripts/install_all.sh
 
-# Alternative: Manual Installation
+# Alternative: Manual Installation (includes UV auto-install)
 python scripts/install_all.py
 
 # Or Install Dependencies Manually
 pip install -r requirements.txt
 npm install
 ```
+
+**Note:** The automated scripts (`install_all.sh` and `install_all.py`) will automatically attempt to use UV if available, with pip as fallback.
 
 ### Step 3: Set Up Environment Variables
 
@@ -364,6 +397,99 @@ data/
     ├── logs/                     # System logs
     └── run_code_workspace/       # Code execution workspace
 ```
+
+Results are automatically saved during all activities. Directories are created automatically as needed.
+
+---
+
+## 🔧 UV Package Manager Guide
+
+DeepTutor supports UV, a fast Python package installer and resolver that provides significant performance improvements over traditional pip.
+
+### Why Use UV?
+
+| Feature | UV | pip |
+|:---:|:---:|:---:|
+| **Installation Speed** | 10-100x faster | Standard |
+| **Dependency Resolution** | Advanced conflict detection | Basic |
+| **Virtual Environment** | Automatic management | Manual setup required |
+| **Lock Files** | Built-in support | Requires additional tools |
+| **Memory Usage** | Optimized | Higher |
+
+### UV Usage with DeepTutor
+
+```bash
+# Install all dependencies (recommended)
+uv sync
+
+# Install specific package
+uv add package_name
+
+# Install development dependencies
+uv sync --dev
+
+# Update all packages
+uv sync --upgrade
+
+# Show installed packages
+uv pip list
+
+# Create lock file
+uv lock
+
+# Install from lock file
+uv sync --locked
+```
+
+### UV Project Configuration
+
+DeepTutor includes a `pyproject.toml` file that UV uses for dependency management:
+
+```toml
+[project]
+name = "ai-tutor"
+version = "0.1.0"
+dependencies = [
+    "fastapi>=0.100.0",
+    "uvicorn>=0.20.0",
+    # ... other dependencies
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    # ... development dependencies
+]
+```
+
+### Troubleshooting UV
+
+**Common Issues:**
+
+1. **UV not found after installation**
+   ```bash
+   # Restart terminal or update PATH
+   export PATH="$HOME/.cargo/bin:$PATH"  # Linux/macOS
+   # Or restart PowerShell on Windows
+   ```
+
+2. **Permission errors**
+   ```bash
+   # Use --user flag
+   uv sync --user
+   ```
+
+3. **Fallback to pip**
+   ```bash
+   # If UV fails, the install scripts automatically fallback to pip
+   pip install -r requirements.txt
+   ```
+
+**Performance Tips:**
+- Use `uv sync` instead of `pip install -r requirements.txt`
+- Enable UV cache: `export UV_CACHE_DIR=~/.cache/uv`
+- Use `--locked` flag for reproducible builds in production
 
 Results are automatically saved during all activities. Directories are created automatically as needed.
 
@@ -1057,7 +1183,7 @@ asyncio.run(main())
 
 **Checklist**
 - Confirm Python version >= 3.10
-- Confirm all dependencies installed: `pip install -r requirements.txt`
+- Confirm all dependencies installed: `uv sync` or `pip install -r requirements.txt`
 - Check if port 8001 is in use (configurable in `config/main.yaml`)
 - Check `.env` file configuration
 

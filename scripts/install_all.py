@@ -68,21 +68,60 @@ def print_warning(message: str):
 
 
 def install_backend_deps(project_root: Path) -> bool:
-    """Install backend dependencies"""
+    """Install backend dependencies using uv sync"""
     print_step("Step 1/3: Installing backend dependencies")
 
+    # Check if uv is available
+    uv_path = shutil.which("uv")
+    if not uv_path:
+        print_warning("uv command not found, attempting to install uv...")
+        try:
+            # Try to install uv using pip
+            cmd = [sys.executable, "-m", "pip", "install", "uv"]
+            result = subprocess.run(
+                cmd,
+                check=False,
+                timeout=300,
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode != 0:
+                print_error("Failed to install uv automatically")
+                print_info("Please install uv manually:")
+                print_info("  pip install uv")
+                print_info("  or visit: https://github.com/astral-sh/uv")
+                return False
+            
+            # Update PATH and check again
+            uv_path = shutil.which("uv")
+            if not uv_path:
+                print_error("uv installed but not found in PATH")
+                return False
+            print_success("uv installed successfully")
+        except Exception as e:
+            print_error(f"Error installing uv: {e}")
+            return False
+
+    print_info(f"Using uv: {uv_path}")
+    print_info(f"Project root: {project_root}")
+
+    # Check for project configuration files
+    pyproject_file = project_root / "pyproject.toml"
     requirements_file = project_root / "requirements.txt"
-    if not requirements_file.exists():
-        print_error(f"requirements.txt not found: {requirements_file}")
+    
+    if not pyproject_file.exists() and not requirements_file.exists():
+        print_error("Neither pyproject.toml nor requirements.txt found")
         return False
 
-    print_info(f"Using Python: {sys.executable}")
-    print_info(f"Requirements file: {requirements_file}")
+    if pyproject_file.exists():
+        print_info(f"Found pyproject.toml: {pyproject_file}")
+    if requirements_file.exists():
+        print_info(f"Found requirements.txt: {requirements_file}")
 
     try:
-        # Install using pip
-        cmd = [sys.executable, "-m", "pip", "install", "-r", str(requirements_file)]
-        print_info("Installing backend dependencies, please wait...")
+        # Use uv sync to install dependencies
+        cmd = [uv_path, "sync"]
+        print_info("Installing backend dependencies with uv sync, please wait...")
 
         result = subprocess.run(
             cmd,
@@ -94,10 +133,31 @@ def install_backend_deps(project_root: Path) -> bool:
         )
 
         if result.returncode == 0:
-            print_success("Backend dependencies installed successfully")
+            print_success("Backend dependencies installed successfully with uv sync")
             return True
-        print_error(f"Backend dependencies installation failed (exit code: {result.returncode})")
-        return False
+        else:
+            print_error(f"uv sync failed (exit code: {result.returncode})")
+            print_info("Fallback: trying with pip install...")
+            
+            # Fallback to pip if uv sync fails
+            if requirements_file.exists():
+                fallback_cmd = [sys.executable, "-m", "pip", "install", "-r", str(requirements_file)]
+                fallback_result = subprocess.run(
+                    fallback_cmd,
+                    check=False,
+                    cwd=project_root,
+                    timeout=600,
+                    capture_output=False,
+                    text=True,
+                )
+                if fallback_result.returncode == 0:
+                    print_success("Backend dependencies installed successfully with pip (fallback)")
+                    return True
+                else:
+                    print_error("Both uv sync and pip install failed")
+                    return False
+            else:
+                return False
 
     except subprocess.TimeoutExpired:
         print_error("Installation timeout (exceeded 10 minutes)")
@@ -105,7 +165,6 @@ def install_backend_deps(project_root: Path) -> bool:
     except Exception as e:
         print_error(f"Error installing backend dependencies: {e}")
         return False
-
 
 def install_frontend_deps(project_root: Path) -> bool:
     """Install frontend dependencies"""

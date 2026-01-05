@@ -13,7 +13,7 @@
 
 
 
-[**快速开始**](#快速开始) · [**核心模块**](#核心模块) · [**常见问题**](#常见问题)
+[**快速开始**](#快速开始) · [**UV指南**](#uv-包管理器指南) · [**核心模块**](#核心模块) · [**常见问题**](#常见问题)
 
 [🇬🇧 English](../../README.md) · [🇯🇵 日本語](README_JA.md) · [🇪🇸 Español](README_ES.md) · [🇫🇷 Français](README_FR.md) · [🇸🇦 العربية](README_AR.md)
 
@@ -21,8 +21,8 @@
 
 <div align="center">
 
-| ⚡ **海量文档知识问答**  |  📈 **交互式学习可视化**  | <br>
-| 🧠 **知识强化**  |  🔬 **深度研究与想法生成** |
+⚡ **海量文档知识问答** &nbsp;•&nbsp; 📈 **交互式学习可视化**<br>
+🧠 **知识强化** &nbsp;•&nbsp; 🔬 **深度研究与想法生成**
 
 </div>
 
@@ -367,7 +367,98 @@ data/
 
 ---
 
-## 📦 核心模块
+## � UV 包管理器指南
+
+DeepTutor 支持 UV，这是一个快速的 Python 包安装器和解析器，相比传统的 pip 提供了显著的性能改进。
+
+### 为什么使用 UV？
+
+| 特性 | UV | pip |
+|:---:|:---:|:---:|
+| **安装速度** | 快 10-100 倍 | 标准 |
+| **依赖解析** | 高级冲突检测 | 基础 |
+| **虚拟环境** | 自动管理 | 需要手动设置 |
+| **锁定文件** | 内置支持 | 需要额外工具 |
+| **内存使用** | 优化 | 较高 |
+
+### 在 DeepTutor 中使用 UV
+
+```bash
+# 安装所有依赖（推荐）
+uv sync
+
+# 安装特定包
+uv add package_name
+
+# 安装开发依赖
+uv sync --dev
+
+# 更新所有包
+uv sync --upgrade
+
+# 显示已安装的包
+uv pip list
+
+# 创建锁定文件
+uv lock
+
+# 从锁定文件安装
+uv sync --locked
+```
+
+### UV 项目配置
+
+DeepTutor 包含一个 `pyproject.toml` 文件，UV 使用它进行依赖管理：
+
+```toml
+[project]
+name = "ai-tutor"
+version = "0.1.0"
+dependencies = [
+    "fastapi>=0.100.0",
+    "uvicorn>=0.20.0",
+    # ... 其他依赖
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    # ... 开发依赖
+]
+```
+
+### UV 故障排除
+
+**常见问题：**
+
+1. **安装后找不到 UV**
+   ```bash
+   # 重启终端或更新 PATH
+   export PATH="$HOME/.cargo/bin:$PATH"  # Linux/macOS
+   # 或在 Windows 上重启 PowerShell
+   ```
+
+2. **权限错误**
+   ```bash
+   # 使用 --user 标志
+   uv sync --user
+   ```
+
+3. **回退到 pip**
+   ```bash
+   # 如果 UV 失败，安装脚本会自动回退到 pip
+   pip install -r requirements.txt
+   ```
+
+**性能提示：**
+- 使用 `uv sync` 而不是 `pip install -r requirements.txt`
+- 启用 UV 缓存：`export UV_CACHE_DIR=~/.cache/uv`
+- 在生产环境中使用 `--locked` 标志进行可重现构建
+
+执行任何活动时，所有结果都会自动保存。如果文件夹不存在，将自动创建。
+
+## �📦 核心模块
 
 <details>
 <summary><b>🧠 智能解题</b></summary>

@@ -71,22 +71,71 @@ fi
 # Step 1: Install backend dependencies
 print_step "Step 1/3: Installing backend dependencies"
 
+# Check if uv is available
+if ! command -v uv &> /dev/null; then
+    print_warning "uv command not found, attempting to install uv..."
+    
+    # Try to install uv using pip
+    if python -m pip install uv; then
+        # Reload PATH
+        hash -r 2>/dev/null || true
+        
+        # Check again
+        if ! command -v uv &> /dev/null; then
+            print_error "uv installed but not found in PATH"
+            print_info "Please restart your terminal or add uv to PATH"
+            print_info "Then run this script again"
+            exit 1
+        fi
+        print_success "uv installed successfully"
+    else
+        print_error "Failed to install uv automatically"
+        print_info "Please install uv manually:"
+        print_info "  pip install uv"
+        print_info "  or visit: https://github.com/astral-sh/uv"
+        exit 1
+    fi
+fi
+
+# Check for project configuration files
+PYPROJECT_FILE="$PROJECT_ROOT/pyproject.toml"
 REQUIREMENTS_FILE="$PROJECT_ROOT/requirements.txt"
 
-if [ ! -f "$REQUIREMENTS_FILE" ]; then
-    print_error "requirements.txt not found: $REQUIREMENTS_FILE"
+if [ ! -f "$PYPROJECT_FILE" ] && [ ! -f "$REQUIREMENTS_FILE" ]; then
+    print_error "Neither pyproject.toml nor requirements.txt found"
     exit 1
 fi
 
-print_info "Using Python: $(which python)"
-print_info "Requirements file: $REQUIREMENTS_FILE"
-print_info "Installing backend dependencies, please wait..."
+print_info "Using uv: $(which uv)"
+print_info "Project root: $PROJECT_ROOT"
 
-if python -m pip install -r "$REQUIREMENTS_FILE"; then
-    print_success "Backend dependencies installed successfully"
+if [ -f "$PYPROJECT_FILE" ]; then
+    print_info "Found pyproject.toml: $PYPROJECT_FILE"
+fi
+if [ -f "$REQUIREMENTS_FILE" ]; then
+    print_info "Found requirements.txt: $REQUIREMENTS_FILE"
+fi
+
+print_info "Installing backend dependencies with uv sync, please wait..."
+
+if uv sync; then
+    print_success "Backend dependencies installed successfully with uv sync"
 else
-    print_error "Backend dependencies installation failed"
-    exit 1
+    print_error "uv sync failed, trying fallback with pip..."
+    
+    # Fallback to pip if uv sync fails
+    if [ -f "$REQUIREMENTS_FILE" ]; then
+        print_info "Using fallback: pip install -r requirements.txt"
+        if python -m pip install -r "$REQUIREMENTS_FILE"; then
+            print_success "Backend dependencies installed successfully with pip (fallback)"
+        else
+            print_error "Both uv sync and pip install failed"
+            exit 1
+        fi
+    else
+        print_error "No requirements.txt found for pip fallback"
+        exit 1
+    fi
 fi
 
 # Step 2: Install frontend dependencies
